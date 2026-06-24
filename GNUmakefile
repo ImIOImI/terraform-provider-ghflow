@@ -15,9 +15,10 @@ install:
 test:
 	go test ./... -v
 
-# End-to-end test: builds the provider, creates a throwaway GitHub repo, runs
-# the full commit -> PR -> merge flow with tofu, asserts, then deletes the repo.
-# Requires GITHUB_TOKEN (repo + delete_repo) and tofu (or set GHFLOW_TF_BINARY).
+# End-to-end test: builds the provider, ensures a persistent PRIVATE test repo
+# exists, runs the full commit -> PR -> merge flow with tofu, and asserts.
+# The repo is reused across runs and never deleted.
+# Requires GITHUB_TOKEN (repo scope) and tofu (or set GHFLOW_TF_BINARY).
 .PHONY: test-e2e
 test-e2e:
 	cd test && go test -tags e2e -v -timeout 30m ./...

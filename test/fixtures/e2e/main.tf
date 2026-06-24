@@ -28,20 +28,31 @@ variable "base_branch" {
   default = "main"
 }
 
+# Unique per run so reruns against the persistent repo never collide.
+variable "branch" {
+  type = string
+}
+
+# Unique per run so the committed file always differs from what's on main,
+# guaranteeing a non-empty diff that can actually be merged.
+variable "marker" {
+  type = string
+}
+
 resource "ghflow_commit" "test" {
   owner          = var.owner
   repository     = var.repository
-  branch         = "ghflow-e2e"
+  branch         = var.branch
   from_branch    = var.base_branch
   path           = "ghflow-e2e.txt"
-  content        = "created by ghflow e2e test\n"
-  commit_message = "test: ghflow e2e commit"
+  content        = "created by ghflow e2e test\nrun: ${var.marker}\n"
+  commit_message = "test: ghflow e2e commit (${var.marker})"
 }
 
 resource "ghflow_pull_request" "test" {
   owner      = var.owner
   repository = var.repository
-  title      = "ghflow e2e PR"
+  title      = "ghflow e2e PR (${var.marker})"
   body       = "Automated end-to-end test PR."
   head_ref   = ghflow_commit.test.branch
   base_ref   = var.base_branch
