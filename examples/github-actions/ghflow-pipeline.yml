@@ -1,0 +1,50 @@
+# Example: running the ghflow provider from GitHub Actions.
+#
+# Copy this into a CONSUMER repo's .github/workflows/ — it is an example, not a
+# workflow for this provider repo itself.
+#
+# ⚠️ CREDENTIAL CHOICE MATTERS. Do NOT authenticate the provider with the default
+# GITHUB_TOKEN. Commits, PRs, and merges made with GITHUB_TOKEN do NOT trigger
+# other workflows, so the CI that `ghflow_ci_status` waits on would never start
+# and the gate would hang until its timeout. Use a GitHub App installation token
+# (option A, recommended) or a PAT (option B) — both trigger downstream CI.
+
+name: ghflow-pipeline
+
+on:
+  workflow_dispatch: {}
+
+# The provider authenticates with the App/PAT token below, NOT GITHUB_TOKEN, so
+# this only needs read access to check out the repo.
+permissions:
+  contents: read
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # ---- Option A (recommended): GitHub App installation token ----
+      # The App must be installed on the target repos with the same permissions
+      # the provider needs: Contents R/W, Pull requests R/W, Checks R, Commit
+      # statuses R. Store the App ID as a variable and the private key as a secret.
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.GHFLOW_APP_ID }}
+          private-key: ${{ secrets.GHFLOW_APP_PRIVATE_KEY }}
+          # owner: ${{ github.repository_owner }}   # set if the App is installed org-wide
+
+      - uses: opentofu/setup-opentofu@v1
+
+      - name: tofu apply
+        env:
+          # The provider reads GITHUB_TOKEN. Feed it the App token (option A)...
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          # ...OR a PAT secret (option B): comment the line above and uncomment below.
+          # GITHUB_TOKEN: ${{ secrets.GHFLOW_PAT }}
+        run: |
+          tofu init
+          tofu apply -auto-approve
