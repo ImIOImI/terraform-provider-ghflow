@@ -20,6 +20,37 @@ both `tofu` and `terraform` — a single build runs under either CLI and publish
 The `ghflow_*` prefix intentionally avoids colliding with the official [`integrations/github`][igh] provider's
 `github_*` resources, so the two can coexist in one configuration.
 
+## Data sources
+
+| Data source | Purpose |
+|-------------|---------|
+| `ghflow_ci_status` | Waits for CI on a ref to finish and reports whether all checks are green. Considers both check runs and the combined commit status. Use it to gate a merge. |
+
+`ghflow_ci_status` **always waits** (up to `timeout`) for checks to reach a terminal state. By default every
+check gates the result; narrow it with `required_checks` (allowlist) or `ignore_checks` (denylist). If anything
+is red and `error_on_failure` is true (the default), the read errors — which fails the plan/apply. Point `ref`
+at a computed value (e.g. `ghflow_commit.commit_sha`) so the wait happens at **apply** time.
+
+```hcl
+# Gate a merge on green CI: wait for checks on the PR head, then merge.
+data "ghflow_ci_status" "gate" {
+  owner           = "ImIOImI"
+  repository      = "demo-repo"
+  ref             = ghflow_commit.config.commit_sha # computed -> waits at apply
+  timeout         = "30m"
+  required_checks = ["build", "test"] # optional: only gate on these
+}
+
+resource "ghflow_pr_merge" "config" {
+  owner             = "ImIOImI"
+  repository        = "demo-repo"
+  number            = ghflow_pull_request.config.number
+  required_head_sha = ghflow_pull_request.config.head_sha
+  # depends_on forces the merge to wait until the CI gate read succeeds.
+  depends_on = [data.ghflow_ci_status.gate]
+}
+```
+
 ## Usage
 
 ```hcl
