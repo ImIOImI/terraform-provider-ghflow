@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/go-github/v66/github"
@@ -11,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var (
@@ -36,6 +38,7 @@ type ciStatusDataSourceModel struct {
 	RequiredChecks types.List   `tfsdk:"required_checks"`
 	IgnoreChecks   types.List   `tfsdk:"ignore_checks"`
 	ErrorOnFailure types.Bool   `tfsdk:"error_on_failure"`
+	PullRequestURL types.String `tfsdk:"pull_request_url"`
 
 	ID            types.String `tfsdk:"id"`
 	Success       types.Bool   `tfsdk:"success"`
@@ -123,6 +126,11 @@ func (d *ciStatusDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 			"error_on_failure": schema.BoolAttribute{
 				MarkdownDescription: "If true (default), a failed or timed-out result raises an error (failing the plan/apply). " +
 					"If false, the data source returns normally and you inspect `success`/`state` yourself.",
+				Optional: true,
+			},
+			"pull_request_url": schema.StringAttribute{
+				MarkdownDescription: "Optional URL to include in the log/error when CI is not green, so it can be opened " +
+					"for manual review. Typically wired from `ghflow_pull_request.html_url`.",
 				Optional: true,
 			},
 			"id": schema.StringAttribute{
@@ -296,19 +304,48 @@ func (d *ciStatusDataSource) Read(ctx context.Context, req datasource.ReadReques
 	config.PendingChecks = pendingList
 	config.Checks = checksList
 
-	if errorOnFailure && !success {
+	if !success {
+		var b strings.Builder
 		if timedOut {
-			resp.Diagnostics.AddError(
-				"Timed out waiting for CI",
-				fmt.Sprintf("CI on %s/%s@%s did not complete within %s. Pending: %v; failed: %v.", owner, repo, ref, timeout, pending, failed),
-			)
+			fmt.Fprintf(&b, "CI on %s/%s@%s did not complete within %s (state %q).", owner, repo, ref, timeout, state)
 		} else {
-			resp.Diagnostics.AddError(
-				"CI is not green",
-				fmt.Sprintf("CI on %s/%s@%s is %q. Failed checks: %v.", owner, repo, ref, state, failed),
-			)
+			fmt.Fprintf(&b, "CI on %s/%s@%s is %q.", owner, repo, ref, state)
 		}
-		return
+		if len(failed) > 0 {
+			fmt.Fprintf(&b, " Failed checks: %v.", failed)
+		}
+		if len(pending) > 0 {
+			fmt.Fprintf(&b, " Pending checks: %v.", pending)
+		}
+		prURL := config.PullRequestURL.ValueString()
+		if !config.PullRequestURL.IsNull() && prURL != "" {
+			fmt.Fprintf(&b, "\nOpen the pull request for manual review: %s", prURL)
+		}
+		msg := b.String()
+
+		// Structured log line (visible with TF_LOG=info or higher).
+		tflog.Warn(ctx, "ghflow_ci_status: CI is not green", map[string]interface{}{
+			"owner":            owner,
+			"repository":       repo,
+			"ref":              ref,
+			"state":            state,
+			"failed_checks":    failed,
+			"pending_checks":   pending,
+			"pull_request_url": prURL,
+		})
+
+		if errorOnFailure {
+			summary := "CI is not green"
+			if timedOut {
+				summary = "Timed out waiting for CI"
+			}
+			resp.Diagnostics.AddError(summary, msg)
+			return
+		}
+
+		// Not erroring: surface as a warning so the message (and PR URL) is
+		// still visible in normal plan/apply output, then return the outputs.
+		resp.Diagnostics.AddWarning("CI is not green", msg)
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)

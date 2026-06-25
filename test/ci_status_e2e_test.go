@@ -88,17 +88,28 @@ func TestGhflowCIStatus(t *testing.T) {
 	createStatus(t, ctx, client, owner, repoName, sha, checkContext, "failure")
 	waitForCombinedState(t, ctx, client, owner, repoName, sha, checkContext, "failure")
 
-	redReadOpts := baseOpts(map[string]interface{}{"error_on_failure": false})
-	terraform.Apply(t, redReadOpts)
+	const fakePRURL = "https://github.com/ImIOImI/terraform-provider-ghflow-e2e/pull/4242"
+
+	redReadOpts := baseOpts(map[string]interface{}{
+		"error_on_failure": false,
+		"pull_request_url": fakePRURL,
+	})
+	readOut := terraform.Apply(t, redReadOpts)
 	require.Equal(t, "false", terraform.Output(t, redReadOpts, "success"))
 	require.Equal(t, "failure", terraform.Output(t, redReadOpts, "state"))
 	require.Contains(t, terraform.Output(t, redReadOpts, "failed_checks"), checkContext)
+	// The PR URL is emitted as a warning so it's visible in normal output.
+	require.Contains(t, readOut, fakePRURL, "warning should include the PR URL for manual review")
 
 	// --- Phase 3: failing status, error_on_failure=true -> the gate fails apply ---
-	redGateOpts := baseOpts(map[string]interface{}{"error_on_failure": true})
+	redGateOpts := baseOpts(map[string]interface{}{
+		"error_on_failure": true,
+		"pull_request_url": fakePRURL,
+	})
 	_, err = terraform.ApplyE(t, redGateOpts)
 	require.Error(t, err, "apply should fail when CI is red and error_on_failure=true")
 	require.Contains(t, err.Error(), "not green")
+	require.Contains(t, err.Error(), fakePRURL, "error should include the PR URL for manual review")
 
 	// --- Phase 4: a required check that never appears -> wait then timeout=pending ---
 	pendingOpts := baseOpts(map[string]interface{}{

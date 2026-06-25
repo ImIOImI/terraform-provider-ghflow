@@ -27,18 +27,26 @@ The `ghflow_*` prefix intentionally avoids colliding with the official [`integra
 | `ghflow_ci_status` | Waits for CI on a ref to finish and reports whether all checks are green. Considers both check runs and the combined commit status. Use it to gate a merge. |
 
 `ghflow_ci_status` **always waits** (up to `timeout`) for checks to reach a terminal state. By default every
-check gates the result; narrow it with `required_checks` (allowlist) or `ignore_checks` (denylist). If anything
-is red and `error_on_failure` is true (the default), the read errors — which fails the plan/apply. Point `ref`
+check gates the result; narrow it with `required_checks` (allowlist) or `ignore_checks` (denylist). Point `ref`
 at a computed value (e.g. `ghflow_commit.commit_sha`) so the wait happens at **apply** time.
+
+**Failure behavior depends on `error_on_failure`:**
+
+- **`true` (default)** — if CI is red or times out, the read **raises an error** and fails the plan/apply (the gate). It does *not* return `success = false`; the read fails.
+- **`false`** — the read **succeeds** and you inspect `success` / `state` / `failed_checks` yourself; a warning is still emitted.
+
+Set `pull_request_url` (typically `ghflow_pull_request.html_url`) to have the PR link included in that error/warning
+— and in a `tflog` line — so a failed run points straight at the PR to review manually.
 
 ```hcl
 # Gate a merge on green CI: wait for checks on the PR head, then merge.
 data "ghflow_ci_status" "gate" {
-  owner           = "ImIOImI"
-  repository      = "demo-repo"
-  ref             = ghflow_commit.config.commit_sha # computed -> waits at apply
-  timeout         = "30m"
-  required_checks = ["build", "test"] # optional: only gate on these
+  owner            = "ImIOImI"
+  repository       = "demo-repo"
+  ref              = ghflow_commit.config.commit_sha # computed -> waits at apply
+  timeout          = "30m"
+  required_checks  = ["build", "test"]               # optional: only gate on these
+  pull_request_url = ghflow_pull_request.config.html_url # surfaced in the error/log on failure
 }
 
 resource "ghflow_pr_merge" "config" {

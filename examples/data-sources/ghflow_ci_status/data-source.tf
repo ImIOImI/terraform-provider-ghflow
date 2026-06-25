@@ -16,6 +16,10 @@ data "ghflow_ci_status" "head" {
 
   # Set to false to read state without failing when CI is red/pending.
   error_on_failure = true
+
+  # Optional: included in the error/log when CI isn't green, so you can jump
+  # straight to the PR for manual review. Wire from ghflow_pull_request.html_url.
+  # pull_request_url = ghflow_pull_request.config.html_url
 }
 
 output "ci_is_green" {

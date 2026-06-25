@@ -47,6 +47,11 @@ variable "poll_interval" {
   default = "3s"
 }
 
+variable "pull_request_url" {
+  type    = string
+  default = ""
+}
+
 data "ghflow_ci_status" "this" {
   owner            = var.owner
   repository       = var.repository
@@ -55,6 +60,7 @@ data "ghflow_ci_status" "this" {
   required_checks  = var.required_checks
   timeout          = var.timeout
   poll_interval    = var.poll_interval
+  pull_request_url = var.pull_request_url
 }
 
 output "success" {
