@@ -62,6 +62,37 @@ provider "ghflow" {
 | Token (PAT) | `token` | `GITHUB_TOKEN` |
 | API base URL (GitHub Enterprise) | `base_url` | `GITHUB_BASE_URL` |
 
+#### Token permissions
+
+Scope the token to the target repositories and grant exactly the following — three read-only, two read/write.
+
+**Fine-grained PAT** (recommended):
+
+| Permission | Level | Needed by |
+|------------|-------|-----------|
+| **Metadata** | Read | Mandatory baseline for every fine-grained token (auto-selected). |
+| **Contents** | Read and write | `ghflow_commit` (git refs/trees/commits) and `ghflow_pr_merge` (the merge writes to the base branch). |
+| **Pull requests** | Read and write | `ghflow_pull_request` (create / edit / close / read). |
+| **Checks** | Read | `ghflow_ci_status` (lists check runs). |
+| **Commit statuses** | Read | `ghflow_ci_status` (reads the combined commit status). |
+
+**Classic PAT** — there is no `checks` scope; check-run reads come with repository access:
+
+| Target repositories | Classic scope(s) |
+|---------------------|------------------|
+| Private (or a mix of private and public) | `repo` |
+| Public only | `public_repo` + `repo:status` |
+
+> **SAML SSO — easy to miss.** If a target repository belongs to an organization that enforces SAML single
+> sign-on, the token must be **authorized for that organization** in addition to having the permissions above.
+> An unauthorized token fails with `404 Not Found` / `Resource not accessible`, which looks like a missing
+> permission but isn't. Authorize it under **Settings → Developer settings → Personal access tokens →
+> Configure SSO** (classic) or by approving the fine-grained token in the org's token settings.
+
+> The e2e test suite needs more than the provider itself: it also creates the test repository
+> (**Administration: write**, or `repo` for a classic token) and posts simulated CI statuses
+> (**Commit statuses: write**). See [Developing the Provider](#developing-the-provider).
+
 ### Resources
 
 | Resource | Purpose |
