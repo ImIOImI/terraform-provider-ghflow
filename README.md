@@ -8,11 +8,6 @@ It is built on the [Terraform Plugin Framework][framework] and the plugin protoc
 repository contains the provider, its resources and data source, runnable [examples](./examples), and
 generated [docs](./docs).
 
-> **Why "terraform-" in the name?** The provider plugin SDKs (`terraform-plugin-framework`, …) are still
-> HashiCorp-published and MPL-2.0 licensed; the BSL relicense affected Terraform *core*, not these libraries.
-> OpenTofu has no provider SDK of its own and recommends these exact libraries. The `terraform-provider-`
-> binary prefix is a hard registry requirement for **both** registries, so the name is correct for OpenTofu.
-
 ## Requirements
 
 - [OpenTofu](https://opentofu.org/docs/intro/install/) >= 1.6 _or_ [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.0
