@@ -1,6 +1,11 @@
 # terraform-provider-ghflow
 
-A provider that drives the GitHub **commit → pull request → merge** flow as managed resources, plus a
+> [!WARNING]
+> First of all, if you're here... I'm sorry and who hurt you? This provider is not the best way to do anything
+> but it is a necessary way to do some things. Before going down this road, please ask yourself how you got 
+> here and re-evaluate your life choices.
+
+This is a provider that drives the GitHub **commit → pull request → merge** flow as managed resources, plus a
 `ghflow_ci_status` data source that waits for CI and can gate a merge on green checks.
 
 It is built on the [Terraform Plugin Framework][framework] and the plugin protocol (v6) shared by both
