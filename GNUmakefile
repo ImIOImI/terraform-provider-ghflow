@@ -38,8 +38,8 @@ lint:
 
 # Generate registry docs from schema + examples (requires tfplugindocs).
 # go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@latest
-.PHONY: docs
-docs:
+.PHONY: docs generate
+docs generate:
 	tfplugindocs generate --provider-name ghflow
 
 # Build and place the binary for local dev_overrides testing.
