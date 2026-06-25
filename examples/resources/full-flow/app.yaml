@@ -1,0 +1,5 @@
+app:
+  name: demo
+  replicas: 3
+  feature_flags:
+    new_dashboard: true

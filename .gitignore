@@ -1,0 +1,22 @@
+# Binaries
+terraform-provider-ghflow
+dist/
+
+# Go
+*.test
+*.out
+vendor/
+
+# Local dev
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+crash.log
+.terraformrc
+terraform.rc
+*.dev.tfrc
+
+# Editor
+.idea/
+.vscode/
