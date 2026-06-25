@@ -4,10 +4,13 @@
 # workflow for this provider repo itself.
 #
 # ⚠️ CREDENTIAL CHOICE MATTERS. Do NOT authenticate the provider with the default
-# GITHUB_TOKEN. Commits, PRs, and merges made with GITHUB_TOKEN do NOT trigger
-# other workflows, so the CI that `ghflow_ci_status` waits on would never start
-# and the gate would hang until its timeout. Use a GitHub App installation token
-# (option A, recommended) or a PAT (option B) — both trigger downstream CI.
+# GITHUB_TOKEN — it breaks this flow two ways:
+#   1. It can't create a PR unless the repo's "Allow GitHub Actions to create and
+#      approve pull requests" setting is on (OFF by default) -> ghflow_pull_request 403s.
+#   2. Events it creates don't trigger other workflows, so the CI ghflow_ci_status
+#      waits on never runs -> the gate hangs until its timeout.
+# Use a GitHub App installation token (option A, recommended) or a PAT (option B) —
+# both can create PRs and both trigger downstream CI.
 
 name: ghflow-pipeline
 

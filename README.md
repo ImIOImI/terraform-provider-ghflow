@@ -194,10 +194,11 @@ See [`examples/`](./examples) for runnable configurations.
 
 ### Running in GitHub Actions
 
-When running the provider from GitHub Actions, **do not authenticate with the default `GITHUB_TOKEN`** — events
-it creates do not trigger other workflows, so the CI that `ghflow_ci_status` waits on never starts and the gate
-hangs until `timeout`. Use a GitHub App installation token (recommended) or a PAT; both trigger downstream CI.
-See [`examples/github-actions/`](./examples/github-actions) for a complete workflow and setup.
+When running the provider from GitHub Actions, **do not authenticate with the default `GITHUB_TOKEN`**, for two
+reasons: by default it can't create pull requests (the *"Allow GitHub Actions to create and approve pull
+requests"* setting is off, so `ghflow_pull_request` `403`s), and events it creates don't trigger other workflows,
+so the CI `ghflow_ci_status` waits on never runs and the gate times out. Use a GitHub App token (recommended) or
+a PAT. See [`examples/github-actions/`](./examples/github-actions) for a complete workflow and setup.
 
 ## Developing the Provider
 

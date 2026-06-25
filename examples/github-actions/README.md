@@ -5,11 +5,17 @@ into a **consumer** repo's `.github/workflows/`.
 
 ## Do not use the default `GITHUB_TOKEN`
 
-The automatic `GITHUB_TOKEN` **cannot trigger other workflows** — by design, events it creates (a push, a PR, a
-merge) do not start new workflow runs. Because `ghflow_commit` pushes the commit that your CI is supposed to run
-on, authenticating the provider with `GITHUB_TOKEN` means that CI never fires, and `ghflow_ci_status` waits the
-full `timeout` for checks that will never appear. Use one of the two credentials below instead — both trigger
-downstream workflows.
+Authenticating the provider with the automatic `GITHUB_TOKEN` breaks this flow in **two separate ways**:
+
+1. **It can't open the PR (by default).** Creating a pull request with `GITHUB_TOKEN` is blocked unless
+   *Settings → Actions → General → "Allow GitHub Actions to create and approve pull requests"* is enabled — and
+   it is **off by default**. With it off, `ghflow_pull_request` fails with a `403`. (Pushing the commit in
+   `ghflow_commit` works fine with `contents: write`; it's specifically PR creation/approval that's blocked.)
+2. **It won't trigger your CI.** Even with PR creation enabled, events created by `GITHUB_TOKEN` do **not** start
+   new workflow runs — GitHub's anti-recursion rule, with only `workflow_dispatch`/`repository_dispatch` exempt.
+   So the checks `ghflow_ci_status` waits on never run, and the gate waits the full `timeout`.
+
+Use a GitHub App token or a PAT instead — both can create PRs and both trigger downstream CI.
 
 ## Option A — GitHub App (recommended)
 
