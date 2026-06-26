@@ -36,11 +36,12 @@ lint:
 	gofmt -l .
 	go vet ./...
 
-# Generate registry docs from schema + examples (requires tfplugindocs).
+# Generate registry docs from schema + examples (requires tfplugindocs + tofu).
 # go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@latest
+# Uses tofu to export the schema so no Terraform binary is needed.
 .PHONY: docs generate
 docs generate:
-	tfplugindocs generate --provider-name ghflow
+	./scripts/generate-docs.sh
 
 # Build and place the binary for local dev_overrides testing.
 .PHONY: dev-install
